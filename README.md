@@ -2,6 +2,7 @@ This module attempts to scrape a page for any and all links and embeds that migh
 
 Right now, it's a messy pile of hacks, but I'll eventually be adding tests and making it a proper python package.
 
+
 What works now: 
 * detecting "link" tags with rel="alternate", type="text/calendar"   (returns the iCal URI)
 * detecting embedded and linked to Google Calendars (returns the gcal ID)
