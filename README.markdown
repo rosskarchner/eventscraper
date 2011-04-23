@@ -16,3 +16,4 @@ ToDo:
 * Links/embeds of Facebook groups
 * Eventbrite organizer pages
 * Upcoming support
+* microformats
