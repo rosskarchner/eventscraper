@@ -10,18 +10,20 @@ import re
 
 
 gcal_link_re=re.compile(r'http[s]*://.+google.com/calendar/.+/((.)+)/public/.+', flags=re.IGNORECASE)
-gcal_embed_re= re.compile(r'http://www.google.com/calendar.embed?((.)+)', flags=re.IGNORECASE)
+gcal_embed_re= re.compile(r'http[s]*://www.google.com/calendar.embed?((.)+)', flags=re.IGNORECASE)
 extract_meetup_id_from_js=re.compile(r'var Chapter={id:((\d)+)')
 webcal_re = re.compile(r'webcal://(.)+',re.IGNORECASE)
 eventbrite_organizer_link_re=re.compile(r'.+eventbrite.com/org/((\d)+)', flags=re.IGNORECASE)
 eventbrite_backup_organizer_link_re=re.compile('.+eventbrite.com/rss/organizer_list_events.((\d)+)', flags=re.IGNORECASE)
+eventbrite_event_link=re.compile('http[s]*://[^www]+\.eventbrite.com',flags=re.IGNORECASE)
       
-def search_for_calendars(uri):
+def search_for_calendars(uri, recursive=False):
     html= urlopen(uri).read()
     soup = BeautifulSoup(html)
     # search for <link rel=alternate type=text/calendar />  
     # This should always win.
     discovered=[]
+    gcal_ids=set() 
     found = soup.findAll('link', rel=re.compile(r'ALTERNATE', flags=re.IGNORECASE),
                       type=re.compile(r'text/calendar', flags=re.IGNORECASE ))
     if found and "eventbrite.com" not in uri:   # on eventbrite, these will be single-event ical files about the particular event-- what we want here is the organizer ID
@@ -42,28 +44,25 @@ def search_for_calendars(uri):
     if found: 
         for iframe in found:
             query= urlparse(dict(iframe.attrs)['src']).query
-            calendar_id = parse_qs(query)['src']
-            discovered.append((calendar_id, 'gdata'))
+            calendar_id = parse_qs(query)['src'][0]
+            gcal_ids.add(calendar_id)
 
     # now, links to google calendars iCal or Atom feed
-    gcal_ids=set() 
+    
     found= soup.findAll('a', href=gcal_link_re)
     if found:  
         for link in found:
             match=gcal_link_re.match(dict(link.attrs)['href'])
             gcal_ids.add(match.group(1).replace('%40','@'))
 
-        
-        for gcal in gcal_ids:
-            discovered.append((gcal, 'gdata',))
-
     # next, look for links to  the HTML version of a google calendar, this is how "add to google calendar" buttons usually work
     found= soup.findAll('a', href=gcal_embed_re) 
     if found: 
         for iframe in found:
             query= urlparse(dict(iframe.attrs)['href']).query
-            calendar_id = parse_qs(query)['src']
-            discovered.append((calendar_id, 'gdata'))    
+            calendar_id = parse_qs(query)['src'][0]
+            gcal_ids.add(calendar_id)
+
 
     # is this a Meetup?
     found=soup.find('meta', property="og:site_name", content="Meetup")
@@ -94,6 +93,15 @@ def search_for_calendars(uri):
     for eb_id in eb_ids:
         discovered.append((eb_id,'eventbrite.group'))
     
+    for gcal in gcal_ids:
+            discovered.append((gcal, 'gdata',))
+    
+    #last ditch attempt: are there any links to Eventbrite events?
+    if not recursive and not discovered :
+        found=soup.find('a', href=eventbrite_event_link)
+        if found:
+            discovered=search_for_calendars(dict(found.attrs)['href'],recursive=True)
+    
     return discovered
     
     
@@ -101,6 +109,8 @@ def search_for_calendars(uri):
              
     
 calendars=[ 'http://meetup.zpugdc.org/',
+                'http://icalshare.com/calendars/5201',
+                'http://dcbeer.com/dc-beer-events-calendar/',
                 'http://www.meetup.com/DC-Tech-Meetup/',
                 "http://startupbaltimore.org/events-calendar/",
                 'http://www.i3detroit.com/',
@@ -110,7 +120,8 @@ calendars=[ 'http://meetup.zpugdc.org/',
                 'http://www.hacdc.org/',
                 'http://refreshdc-april2011-eorg.eventbrite.com/',
                 'http://www.eventbrite.com/org/1039770801?s=3731973',
-                'http://eventful.com/washingtondc/events?q=Conferences&ga_search=Conferences&ga_type=events&c=technology'
+                'http://eventful.com/washingtondc/events?q=Conferences&ga_search=Conferences&ga_type=events&c=technology',
+                'http://sites.google.com/site/detroitjug/'
           ]
 
           #  'http://sites.google.com/site/detroitjug/', #links to an eventbrite page
