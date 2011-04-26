@@ -16,6 +16,7 @@ webcal_re = re.compile(r'webcal://(.)+',re.IGNORECASE)
 eventbrite_organizer_link_re=re.compile(r'.+eventbrite.com/org/((\d)+)', flags=re.IGNORECASE)
 eventbrite_backup_organizer_link_re=re.compile('.+eventbrite.com/rss/organizer_list_events.((\d)+)', flags=re.IGNORECASE)
 eventbrite_event_link=re.compile('http[s]*://[^www]+\.eventbrite.com',flags=re.IGNORECASE)
+
       
 def search_for_calendars(uri, recursive=False):
     html= urlopen(uri).read()
@@ -90,6 +91,7 @@ def search_for_calendars(uri, recursive=False):
                 match=regex.match(href)
                 eb_ids.add(match.group(1))
     
+    
     for eb_id in eb_ids:
         discovered.append((eb_id,'eventbrite.group'))
     
@@ -121,7 +123,9 @@ calendars=[ 'http://meetup.zpugdc.org/',
                 'http://refreshdc-april2011-eorg.eventbrite.com/',
                 'http://www.eventbrite.com/org/1039770801?s=3731973',
                 'http://eventful.com/washingtondc/events?q=Conferences&ga_search=Conferences&ga_type=events&c=technology',
-                'http://sites.google.com/site/detroitjug/'
+                'http://sites.google.com/site/detroitjug/',
+                'http://www.capmac.org/phpicalendar/month.php',
+                'http://austinlug.org/event'
           ]
 
           #  'http://sites.google.com/site/detroitjug/', #links to an eventbrite page
